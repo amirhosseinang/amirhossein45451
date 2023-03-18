@@ -1,0 +1,214 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Digikala1.Operations
+{
+    class LockKeyboard
+    {
+        private string input;
+        public string LockKeyboradYN()
+        {
+            Console.WriteLine("Do you want to continue? press y, for stop enter n:");
+            do
+            {
+                input = Console.ReadKey(true).KeyChar.ToString();
+
+            } while (input.ToLower() != "y" && input.ToLower() != "n");
+
+            return input;
+        }
+    }
+}
+using Digikala1.Model;
+
+namespace Digikala1.Operations
+{
+     class DigikalaOperation
+    {
+        List<Digikala> digikalas;
+        public DigikalaOperation(List<Digikala> digikalas)
+        {
+            this.digikalas = digikalas;
+        }
+        public List<Digikala> SearchByUser(int ID_Customer)
+        {
+            return digikalas
+                 .Where(x => x.ID_Customer == ID_Customer)
+                 .ToList();
+        }
+        public List<int> AllSalesByYear(int year)
+        {
+            return digikalas.
+             Where(x => x.DateTime_CartFinalize.Year == year)
+             .Select(x => x.Amount_Gross_Order)
+             .ToList();
+        }
+        public long SumSalesByYear(int year)
+        {
+            List<int> sales = AllSalesByYear(year);
+            long total = 0;
+
+            foreach (int sale in sales)
+            {
+                total += sale;
+            }
+
+            return total;
+        }
+    }
+}
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Digikala1.Model
+{
+    class DigikalaContext
+    {
+        private Digikala digikala;
+        private string line;
+        public List<Digikala> digikalas  { get; }
+        public DigikalaContext(string address)
+        {
+
+            digikalas = new List<Digikala>();
+
+            using (StreamReader strread = new StreamReader(address))
+            {
+                strread.ReadLine();
+                while (!strread.EndOfStream)
+                {
+                    line = strread.ReadLine();
+                    digikala = new Digikala();
+
+                    digikala.ID_Order = Convert.ToInt32(line.Split(",")[0]);
+                    digikala.ID_Customer = Convert.ToInt32(line.Split(",")[1]);
+                    digikala.ID_Item = Convert.ToInt32(line.Split(",")[2]);
+                    digikala.DateTime_CartFinalize = Convert.ToDateTime(line.Split(",")[3]);
+                    digikala.Amount_Gross_Order = Convert.ToInt32(line.Split(",")[4].Replace(".0", ""));
+                    digikala.city_name_fa = line.Split(",")[5];
+
+                    digikalas.Add(digikala);
+                }
+            }
+        }
+    }
+}
+namespace Digikala1.Model;
+
+class Digikala
+{
+    public int ID_Order { get; set; }
+    public int ID_Customer { get; set; }
+    public int ID_Item { get; set; }
+    public DateTime DateTime_CartFinalize { get; set; }
+    public int Amount_Gross_Order { get; set; }
+    public string city_name_fa { get; set; }
+}
+using Digikala1.Model;
+using Digikala1.Operations;
+
+string address = @"D:\Shamsipoor\012\Digikala\orders.csv";
+
+DigikalaContext context = new DigikalaContext(address);
+
+DigikalaOperation op = new DigikalaOperation(context.digikalas);
+
+LockKeyboard lk = new LockKeyboard();                                                                                                  using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace SalesAnalysis
+{
+    public class Order
+    {
+        public int OrderId { get; set; }
+        public int CustomerId { get; set; }
+        public int ItemId { get; set; }
+        public DateTime DateTime { get; set; }
+        public decimal GrossAmount { get; set; }
+        public string CityName { get; set; }
+        public int Quantity { get; set; }
+    }
+
+    public class SalesAnalyzer
+    {
+        private List<Order> Orders { get; set; }
+
+        public SalesAnalyzer(List<Order> orders)
+        {
+            Orders = orders;
+        }
+
+        public decimal GetSalesByYear(int year)
+        {
+            return Orders
+                .Where(o => o.DateTime.Year == year)
+                .Sum(o => o.GrossAmount);
+        }
+
+        public decimal GetSalesByMonth(int year, int month)
+        {
+            return Orders
+                .Where(o => o.DateTime.Year == year && o.DateTime.Month == month)
+                .Sum(o => o.GrossAmount);
+        }
+
+        public decimal GetSalesByCity(string cityName)
+        {
+            return Orders
+                .Where(o => o.CityName.ToLower() == cityName.ToLower())
+                .Sum(o => o.GrossAmount);
+        }
+
+        public decimal GetSalesByItem(int itemId)
+        {
+            return Orders
+                .Where(o => o.ItemId == itemId)
+                .Sum(o => o.GrossAmount);
+        }
+
+        public decimal GetSalesByYearAndCityAndCustomer(int year, string cityName, int customerId)
+        {
+            return Orders
+                .Where(o => o.DateTime.Year == year && o.CityName.ToLower() == cityName.ToLower() && o.CustomerId == customerId)
+                .Sum(o => o.GrossAmount);
+        }
+
+        public string GetSalesByYearReport()
+        {
+            var report = Orders
+                .GroupBy(o => o.DateTime.Year)
+                .Select(g => $"Year {g.Key}: {g.Sum(o => o.GrossAmount)}")
+                .ToList();
+
+            return string.Join(Environment.NewLine, report);
+        }
+
+        public string GetSalesByCityReport()
+        {
+            var report = Orders
+                .GroupBy(o => o.CityName.ToLower())
+                .Select(g => $"{g.Key}: {g.Sum(o => o.GrossAmount)}")
+                .ToList();
+
+            return string.Join(Environment.NewLine, report);
+        }
+
+        public string GetSalesByItemReport()
+        {
+            var report = Orders
+                .GroupBy(o => o.ItemId)
+                .Select(g => $"Item {g.Key}: {g.Sum(o => o.GrossAmount)}")
+                .ToList();
+
+            return string.Join(Environment.NewLine, report);
+        }
+    }
+
+    class Program
